@@ -17,6 +17,7 @@ from ray.includes.unique_ids cimport (
     CObjectID,
 )
 from ray.includes.common cimport (
+    CAddress,
     CActorCreationOptions,
     CBuffer,
     CRayFunction,
@@ -53,6 +54,10 @@ cdef extern from "ray/core_worker/transport/direct_actor_transport.h" nogil:
         CFiberEvent()
         void Wait()
         void Notify()
+
+cdef extern from "ray/core_worker/context.h" nogil:
+    cdef cppclass CWorkerContext "ray::WorkerContext":
+        c_bool CurrentActorIsAsync()
 
 cdef extern from "ray/core_worker/core_worker.h" nogil:
     cdef cppclass CCoreWorker "ray::CoreWorker":
@@ -112,6 +117,12 @@ cdef extern from "ray/core_worker/core_worker.h" nogil:
         void AddObjectIDReference(const CObjectID &object_id)
         void RemoveObjectIDReference(const CObjectID &object_id)
         void PromoteObjectToPlasma(const CObjectID &object_id)
+        void PromoteToPlasmaAndGetOwnershipInfo(const CObjectID &object_id,
+                                                CTaskID *owner_id,
+                                                CAddress *owner_address)
+        void RegisterOwnershipInfoAndResolveFuture(
+                const CObjectID &object_id, const CTaskID &owner_id, const
+                CAddress &owner_address)
 
         CRayStatus SetClientOptions(c_string client_name, int64_t limit)
         CRayStatus Put(const CRayObject &object, CObjectID *object_id)
@@ -132,4 +143,5 @@ cdef extern from "ray/core_worker/core_worker.h" nogil:
                           c_bool local_only, c_bool delete_creating_tasks)
         c_string MemoryUsageString()
 
+        CWorkerContext &GetWorkerContext()
         void YieldCurrentFiber(CFiberEvent &coroutine_done)
